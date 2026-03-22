@@ -6,14 +6,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ConnectionState;
 
-import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
 import 'package:drift_db_viewer/drift_db_viewer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/item_base_model.dart';
@@ -36,7 +34,9 @@ import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
-import 'package:fladder/providers/sync/background_download_provider.dart';
+import 'package:fladder/models/syncing/download_status.dart';
+import 'package:fladder/providers/sync/dio_download_service.dart';
+import 'package:fladder/services/notification_service.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/util/duration_extensions.dart';
@@ -46,10 +46,6 @@ import 'package:fladder/util/string_extensions.dart';
 final syncProvider = StateNotifierProvider<SyncNotifier, SyncSettingsModel>((ref) => throw UnimplementedError());
 
 final downloadTasksProvider = StateProvider.family<DownloadStream, String?>((ref, id) => DownloadStream.empty());
-
-final activeDownloadTasksProvider = StateProvider<List<DownloadTask>>((ref) {
-  return [];
-});
 
 const syncPathKey = "syncPathKey";
 
@@ -98,7 +94,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   }
 
   void _init() {
-    cleanupTemporaryFiles();
     ref.listen(
       userProvider,
       (previous, next) {
@@ -115,6 +110,41 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         updateSyncStates();
       }
     });
+
+    // Progress bridge: map DioDownloadService state to downloadTasksProvider + notifications
+    ref.listen<Map<String, DownloadEntry>>(
+      dioDownloadServiceProvider,
+      (previous, next) {
+        for (final entry in next.values) {
+          final prev = previous?[entry.taskId];
+          // Only process non-terminal entries for normal updates
+          if (!entry.status.isTerminal) {
+            ref.read(downloadTasksProvider(entry.taskId).notifier).update(
+              (state) => DownloadStream(
+                id: entry.taskId,
+                progress: entry.progress > 0 && entry.progress < 1 ? entry.progress : -1,
+                downloadSpeed: entry.downloadSpeed,
+                status: entry.status,
+              ),
+            );
+            // Dispatch download progress notification
+            final progressPercent = (entry.progress * 100).round();
+            final fileName = entry.destinationPath.split('/').last;
+            NotificationService.showDownloadProgress(
+              taskId: entry.taskId,
+              fileName: fileName,
+              progress: progressPercent,
+            );
+          } else if (prev?.status != entry.status) {
+            // Terminal transition: clear to empty once and cancel notification
+            ref.read(downloadTasksProvider(entry.taskId).notifier)
+                .update((state) => DownloadStream.empty());
+            NotificationService.cancelDownloadNotification(entry.taskId);
+          }
+        }
+      },
+    );
+
     _initializeQueryStream();
   }
 
@@ -133,43 +163,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     _subscription = queryStream.listen((items) {
       state = state.copyWith(items: items);
     });
-  }
-
-  Future<void> cleanupTemporaryFiles() async {
-    final activeDownloads = ref.read(activeDownloadTasksProvider);
-    if (activeDownloads.isNotEmpty) return;
-
-    // List of directories to check
-    final directories = [
-      //Desktop directory
-      await getTemporaryDirectory(),
-      //Mobile directory
-      await getApplicationSupportDirectory(),
-    ];
-
-    for (final dir in directories) {
-      final List<FileSystemEntity> files = dir.listSync();
-
-      for (var file in files) {
-        if (file is File) {
-          final fileName = file.path.split(Platform.pathSeparator).last;
-          try {
-            final fileSize = await file.length();
-            if (fileName.startsWith('com.bbflight.background_downloader') && fileSize != 0) {
-              try {
-                await file.delete();
-                log('Deleted temporary file: $fileName from ${dir.path}');
-              } catch (e) {
-                log('Failed to delete file $fileName: $e');
-              }
-            }
-          } on PathAccessException {
-            // Skip files that are inaccessible
-            continue;
-          }
-        }
-      }
-    }
   }
 
   late final JellyService api = ref.read(jellyApiProvider);
@@ -331,13 +324,13 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
               )
               .toList());
 
-      await ref.read(backgroundDownloaderProvider).cancelTaskWithId(item.id);
+      ref.read(dioDownloadServiceProvider.notifier).cancelDownload(item.id);
 
       await _db.deleteAllItems([...nestedChildren, item]);
 
       for (var i = 0; i < nestedChildren.length; i++) {
         final element = nestedChildren[i];
-        await ref.read(backgroundDownloaderProvider).cancelTaskWithId(element.id);
+        ref.read(dioDownloadServiceProvider.notifier).cancelDownload(element.id);
         if (await element.directory.exists()) {
           await element.directory.delete(recursive: true);
         }
@@ -463,21 +456,15 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     return _db.insertItem(syncedItem);
   }
 
-  Future<SyncedItem> deleteFullSyncFiles(SyncedItem syncedItem, DownloadTask? task) async {
+  Future<SyncedItem> deleteFullSyncFiles(SyncedItem syncedItem) async {
     await syncedItem.deleteDatFiles(ref);
-
     ref.read(downloadTasksProvider(syncedItem.id).notifier).update((state) => DownloadStream.empty());
-
-    ref.read(backgroundDownloaderProvider).cancelTaskWithId(syncedItem.id);
-
-    cleanupTemporaryFiles();
+    ref.read(dioDownloadServiceProvider.notifier).cancelDownload(syncedItem.id);
     refresh();
     return syncedItem;
   }
 
   Future<bool?> syncFile(SyncedItem syncItem, bool skipDownload) async {
-    cleanupTemporaryFiles();
-
     final playbackResponse = await api.itemsItemIdPlaybackInfoPost(
       itemId: syncItem.id,
       body: PlaybackInfoDto(
@@ -515,32 +502,22 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     final downloadUrl = buildServerUrl(ref, pathSegments: ['Items', syncItem.id, 'Download']);
 
     try {
-      if (currentTask.task != null) {
-        await ref.read(backgroundDownloaderProvider).cancelTaskWithId(currentTask.id);
+      if (currentTask.isEnqueuedOrDownloading) {
+        ref.read(dioDownloadServiceProvider.notifier).cancelDownload(currentTask.id);
       }
       if (!skipDownload) {
-        final downloadTask = DownloadTask(
-          taskId: syncItem.id,
-          url: downloadUrl,
-          directory: syncItem.directory.path,
-          filename: syncItem.videoFileName,
-          updates: Updates.statusAndProgress,
-          baseDirectory: BaseDirectory.root,
-          urlQueryParameters: {"api_key": user.credentials.token},
-          headers: user.credentials.header(ref),
-          requiresWiFi: ref.read(clientSettingsProvider.select((value) => value.requireWifi)),
-          retries: 3,
-          allowPause: true,
+        final defaultDownloadStream = DownloadStream(
+          id: syncItem.id,
+          status: DownloadStatus.enqueued,
         );
-
-        ref.read(activeDownloadTasksProvider.notifier).update((state) {
-          final existingTasks = state.where((element) => element.taskId != downloadTask.taskId).toList();
-          return [...existingTasks, downloadTask];
-        });
-
-        final defaultDownloadStream = DownloadStream(id: syncItem.id, task: downloadTask, status: TaskStatus.enqueued);
-        ref.read(downloadTasksProvider(syncItem.id).notifier).update((state) => defaultDownloadStream);
-        return await ref.read(backgroundDownloaderProvider).enqueue(downloadTask);
+        ref.read(downloadTasksProvider(syncItem.id).notifier)
+            .update((state) => defaultDownloadStream);
+        await ref.read(dioDownloadServiceProvider.notifier).enqueue(
+          taskId: syncItem.id,
+          url: '$downloadUrl?api_key=${user.credentials.token}',
+          destinationPath: syncItem.videoFile.path,
+          headers: user.credentials.header(ref),
+        );
       }
     } catch (e) {
       log(e.toString());
