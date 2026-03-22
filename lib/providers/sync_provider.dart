@@ -112,6 +112,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     });
 
     // Progress bridge: map DioDownloadService state to downloadTasksProvider + notifications
+    final notifThrottles = <String, DateTime>{};
     ref.listen<Map<String, DownloadEntry>>(
       dioDownloadServiceProvider,
       (previous, next) {
@@ -122,24 +123,44 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
             ref.read(downloadTasksProvider(entry.taskId).notifier).update(
               (state) => DownloadStream(
                 id: entry.taskId,
-                progress: entry.progress > 0 && entry.progress < 1 ? entry.progress : -1,
+                progress: entry.progress > 0 && entry.progress < 1 ? entry.progress : 0,
                 downloadSpeed: entry.downloadSpeed,
                 status: entry.status,
               ),
             );
-            // Dispatch download progress notification
-            final progressPercent = (entry.progress * 100).round();
-            final fileName = entry.destinationPath.split('/').last;
-            NotificationService.showDownloadProgress(
-              taskId: entry.taskId,
-              fileName: fileName,
-              progress: progressPercent,
-            );
+            // Progress notifications: only on platforms with persistent progress bars (Android/iOS).
+            // Linux/desktop gets a single completion notification instead.
+            if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+              if (entry.status == DownloadStatus.running && entry.progress >= 0) {
+                final now = DateTime.now();
+                final lastNotif = notifThrottles[entry.taskId];
+                if (lastNotif == null || now.difference(lastNotif).inMilliseconds >= 1000) {
+                  notifThrottles[entry.taskId] = now;
+                  final progressPercent = (entry.progress * 100).round();
+                  final fileName = entry.destinationPath.split('/').last;
+                  NotificationService.showDownloadProgress(
+                    taskId: entry.taskId,
+                    fileName: fileName,
+                    progress: progressPercent,
+                  );
+                }
+              }
+            }
           } else if (prev?.status != entry.status) {
-            // Terminal transition: clear to empty once and cancel notification
+            // Terminal transition: clear to empty once
             ref.read(downloadTasksProvider(entry.taskId).notifier)
                 .update((state) => DownloadStream.empty());
-            NotificationService.cancelDownloadNotification(entry.taskId);
+            notifThrottles.remove(entry.taskId);
+            // Show completion/failure notification on all platforms, cancel ongoing on mobile
+            if (entry.status == DownloadStatus.complete) {
+              final fileName = entry.destinationPath.split('/').last;
+              NotificationService.showDownloadComplete(
+                taskId: entry.taskId,
+                fileName: fileName,
+              );
+            } else {
+              NotificationService.cancelDownloadNotification(entry.taskId);
+            }
           }
         }
       },

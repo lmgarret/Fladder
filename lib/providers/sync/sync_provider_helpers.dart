@@ -51,7 +51,7 @@ class SyncDownloadStatus extends _$SyncDownloadStatus {
     for (var i = 0; i < nestedChildren.length; i++) {
       final childItem = nestedChildren[i];
       final downloadStream = ref.read(downloadTasksProvider(childItem.id));
-      if (childItem.videoFile.existsSync()) {
+      if (childItem.videoFile.existsSync() && !downloadStream.status.isActive && downloadStream.status != DownloadStatus.paused) {
         fullySyncedChildren++;
       }
       if (downloadStream.isEnqueuedOrDownloading) {
@@ -66,7 +66,10 @@ class SyncDownloadStatus extends _$SyncDownloadStatus {
 
     int syncAbleChildren = nestedChildren.where((element) => element.hasVideoFile).length;
 
-    var fullySynced = nestedChildren.isNotEmpty ? fullySyncedChildren == syncAbleChildren : arg.videoFile.existsSync();
+    final hasOngoingDownload = mainStream.status.isActive || mainStream.status == DownloadStatus.paused;
+    var fullySynced = nestedChildren.isNotEmpty
+        ? fullySyncedChildren == syncAbleChildren
+        : arg.videoFile.existsSync() && !hasOngoingDownload;
     return mainStream.copyWith(
       status: fullySynced ? DownloadStatus.complete : mainStream.status,
       progress: fullProgress / downloadCount.clamp(1, double.infinity).toInt(),

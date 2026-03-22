@@ -238,14 +238,16 @@ class DioDownloadService extends _$DioDownloadService {
     );
     final limit = maxConcurrent == 0 ? 999 : maxConcurrent;
 
-    final requireWifi = ref.read(
-      clientSettingsProvider.select((s) => s.requireWifi),
-    );
-    final connection = ref.read(connectivityStatusProvider);
-
-    // WiFi constraint: if requireWifi is set and we're not on home internet,
-    // leave pending items in queue — they'll start when connectivity improves.
-    if (requireWifi && !connection.homeInternet) return;
+    // WiFi constraint only applies on mobile platforms (Android/iOS).
+    // Desktop platforms don't have cellular data, so the check is meaningless
+    // and connectivity_plus may not report correctly (e.g. Linux without DBus).
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      final requireWifi = ref.read(
+        clientSettingsProvider.select((s) => s.requireWifi),
+      );
+      final connection = ref.read(connectivityStatusProvider);
+      if (requireWifi && !connection.homeInternet) return;
+    }
 
     while (_activeCount < limit && _pendingQueue.isNotEmpty) {
       final next = _pendingQueue.removeAt(0);
@@ -271,9 +273,6 @@ class DioDownloadService extends _$DioDownloadService {
     _updateState();
 
     final entry = _downloads[taskId]!;
-    final startTime = DateTime.now();
-    int lastReceivedBytes = 0;
-    DateTime lastSpeedUpdate = startTime;
 
     try {
       final response = await _dio.get<ResponseBody>(
@@ -286,42 +285,55 @@ class DioDownloadService extends _$DioDownloadService {
           },
         ),
         cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
+      );
+
+      // Extract total size from Content-Length header (may be absent → -1)
+      final contentLength = int.tryParse(
+            response.headers.value('content-length') ?? '',
+          ) ??
+          -1;
+      final totalBytes = contentLength > 0 ? contentLength + startByte : -1;
+
+      // Stream directly to destination — no /tmp intermediate buffer (DL-01)
+      // Track progress by counting bytes as they flow through the stream.
+      final file = File(entry.destinationPath);
+      await file.parent.create(recursive: true);
+      final sink = file.openWrite(
+        mode: startByte > 0 ? FileMode.append : FileMode.write,
+      );
+
+      int receivedBytes = 0;
+      DateTime lastStateUpdate = DateTime.now();
+      int lastReceivedBytes = 0;
+
+      await for (final chunk in response.data!.stream) {
+        sink.add(chunk);
+        receivedBytes += chunk.length;
+
+        // Throttle UI updates to ~1/sec
+        final now = DateTime.now();
+        final elapsed = now.difference(lastStateUpdate).inMilliseconds;
+        if (elapsed >= 1000) {
           final currentEntry = _downloads[taskId];
-          if (currentEntry == null) return;
+          if (currentEntry == null) break;
 
-          // Guard against total == -1 (no Content-Length header)
-          final totalBytes = total > 0 ? total + startByte : -1;
           final progress = totalBytes > 0
-              ? (startByte + received) / totalBytes
+              ? (startByte + receivedBytes) / totalBytes
               : -1.0;
-
-          // Compute download speed since last callback
-          final now = DateTime.now();
-          final elapsed = now.difference(lastSpeedUpdate).inMilliseconds;
-          final bytesDelta = received - lastReceivedBytes;
-          final speed = elapsed > 0
-              ? _formatSpeed(bytesDelta / elapsed * 1000)
-              : currentEntry.downloadSpeed;
-          lastReceivedBytes = received;
-          lastSpeedUpdate = now;
+          final bytesDelta = receivedBytes - lastReceivedBytes;
+          final speed = _formatSpeed(bytesDelta / elapsed * 1000);
+          lastReceivedBytes = receivedBytes;
+          lastStateUpdate = now;
 
           _downloads[taskId] = currentEntry.copyWith(
             progress: progress,
             downloadSpeed: speed,
           );
           _updateState();
-        },
-      );
+        }
+      }
 
-      // Stream directly to destination — no /tmp intermediate buffer (DL-01)
-      final file = File(entry.destinationPath);
-      await file.parent.create(recursive: true);
-      final sink = file.openWrite(
-        // Must use append mode on resume to avoid overwriting existing bytes
-        mode: startByte > 0 ? FileMode.append : FileMode.write,
-      );
-      await response.data!.stream.pipe(sink);
+      await sink.flush();
       await sink.close();
 
       // Success

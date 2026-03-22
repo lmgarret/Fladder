@@ -18,7 +18,7 @@ class DownloadStream {
         downloadSpeed = "",
         status = DownloadStatus.notFound;
 
-  bool get hasDownload => progress != -1.0 && status != DownloadStatus.notFound && status != DownloadStatus.complete;
+  bool get hasDownload => status.isActive || (progress != -1.0 && status != DownloadStatus.notFound && status != DownloadStatus.complete);
 
   bool get isEnqueuedOrDownloading => status == DownloadStatus.enqueued || status == DownloadStatus.running;
 

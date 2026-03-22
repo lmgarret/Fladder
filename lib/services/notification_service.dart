@@ -291,6 +291,44 @@ class NotificationService {
     );
   }
 
+  /// Show a non-ongoing notification when a download finishes.
+  static Future<void> showDownloadComplete({
+    required String taskId,
+    required String fileName,
+  }) async {
+    if (kIsWeb) return;
+
+    // Reuse or allocate a stable notification ID for this task
+    final notifId = _downloadNotifIds.putIfAbsent(taskId, () => _nextDownloadNotifId++);
+
+    final androidDetails = AndroidNotificationDetails(
+      _downloadChannelId,
+      _downloadChannelName,
+      channelShowBadge: false,
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+      ongoing: false,
+      onlyAlertOnce: true,
+      groupKey: _downloadGroupKey,
+    );
+    final iosDetails = DarwinNotificationDetails(threadIdentifier: _downloadGroupKey);
+    final linuxDetails = const LinuxNotificationDetails(defaultActionName: 'Open notification');
+
+    await _plugin.show(
+      id: notifId,
+      title: fileName,
+      body: 'Download complete',
+      notificationDetails: NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+        linux: linuxDetails,
+      ),
+    );
+
+    // Auto-dismiss after a few seconds so it doesn't linger
+    Future.delayed(const Duration(seconds: 5), () => cancelDownloadNotification(taskId));
+  }
+
   /// Cancel a download progress notification when download completes or is cancelled.
   static Future<void> cancelDownloadNotification(String taskId) async {
     final notifId = _downloadNotifIds.remove(taskId);
