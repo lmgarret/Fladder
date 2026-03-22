@@ -9,9 +9,16 @@ import 'package:fladder/models/items/series_model.dart';
 import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/syncing/download_stream.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
+import 'package:fladder/providers/sync/dio_download_service.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
+
+const _cancellableStatuses = {
+  DownloadStatus.canceled,
+  DownloadStatus.failed,
+  DownloadStatus.enqueued,
+};
 
 class SyncLabel extends ConsumerWidget {
   final String? label;
@@ -95,12 +102,27 @@ class SyncProgressBar extends ConsumerWidget {
                   .labelLarge
                   ?.copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75)),
             ),
-            if (downloadStatus.isActive) ...{
+            if (downloadStatus != DownloadStatus.paused && downloadStatus != DownloadStatus.enqueued)
+              IconButton(
+                onPressed: () => ref.read(dioDownloadServiceProvider.notifier).pauseDownload(task.id),
+                icon: const Icon(IconsaxPlusBold.pause),
+              ),
+            if (downloadStatus == DownloadStatus.paused) ...[
               IconButton(
                 onPressed: () => ref.read(syncProvider.notifier).deleteFullSyncFiles(item),
                 icon: const Icon(IconsaxPlusBold.stop),
               ),
-            },
+              IconButton(
+                onPressed: () => ref.read(dioDownloadServiceProvider.notifier).resumeDownload(task.id),
+                icon: const Icon(IconsaxPlusBold.play),
+              ),
+            ],
+            if (_cancellableStatuses.contains(downloadStatus)) ...[
+              IconButton(
+                onPressed: () => ref.read(syncProvider.notifier).deleteFullSyncFiles(item),
+                icon: const Icon(IconsaxPlusBold.stop),
+              ),
+            ],
           ],
         ),
         const SizedBox(width: 6),
