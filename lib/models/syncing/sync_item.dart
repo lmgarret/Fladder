@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'package:background_downloader/background_downloader.dart';
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -77,17 +77,17 @@ abstract class SyncedItem with _$SyncedItem {
   File get videoFile => File(joinAll(["$path", "$videoFileName"]));
   Directory get directory => Directory(path ?? "");
 
-  TaskStatus get status => switch (videoFile.existsSync()) {
-        true => TaskStatus.complete,
-        _ => TaskStatus.notFound,
+  DownloadStatus get status => switch (videoFile.existsSync()) {
+        true => DownloadStatus.complete,
+        _ => DownloadStatus.notFound,
       };
 
   double get totalProgress => 0.0;
 
   bool get hasVideoFile => videoFileName?.isNotEmpty == true && (fileSize ?? 0) > 0;
 
-  TaskStatus get anyStatus {
-    return TaskStatus.notFound;
+  DownloadStatus get anyStatus {
+    return DownloadStatus.notFound;
   }
 
   Future<bool> deleteDatFiles(Ref ref) async {
@@ -119,49 +119,45 @@ abstract class SyncedItem with _$SyncedItem {
   }
 }
 
-extension StatusExtension on TaskStatus {
+extension StatusExtension on DownloadStatus {
   IconData get icon => switch (this) {
-        TaskStatus.enqueued => IconsaxPlusLinear.calendar_circle,
-        TaskStatus.running => IconsaxPlusLinear.arrow_down_1,
-        TaskStatus.complete => IconsaxPlusLinear.tick_circle,
-        TaskStatus.notFound => IconsaxPlusLinear.warning_2,
-        TaskStatus.failed => IconsaxPlusLinear.tag_cross,
-        TaskStatus.canceled => IconsaxPlusLinear.tag_cross,
-        TaskStatus.waitingToRetry => IconsaxPlusLinear.clock,
-        TaskStatus.paused => IconsaxPlusLinear.pause_circle,
+        DownloadStatus.enqueued => IconsaxPlusLinear.calendar_circle,
+        DownloadStatus.running => IconsaxPlusLinear.arrow_down_1,
+        DownloadStatus.complete => IconsaxPlusLinear.tick_circle,
+        DownloadStatus.notFound => IconsaxPlusLinear.warning_2,
+        DownloadStatus.failed => IconsaxPlusLinear.tag_cross,
+        DownloadStatus.canceled => IconsaxPlusLinear.tag_cross,
+        DownloadStatus.paused => IconsaxPlusLinear.pause_circle,
       };
 
   Color color(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return isDarkMode
         ? switch (this) {
-            TaskStatus.enqueued => Colors.blueAccent,
-            TaskStatus.running => Colors.greenAccent,
-            TaskStatus.complete => Colors.limeAccent,
-            TaskStatus.notFound => const Color.fromARGB(255, 221, 135, 23),
-            TaskStatus.canceled || TaskStatus.failed => Theme.of(context).colorScheme.error,
-            TaskStatus.waitingToRetry => Colors.yellowAccent,
-            TaskStatus.paused => Colors.tealAccent,
+            DownloadStatus.enqueued => Colors.blueAccent,
+            DownloadStatus.running => Colors.greenAccent,
+            DownloadStatus.complete => Colors.limeAccent,
+            DownloadStatus.notFound => const Color.fromARGB(255, 221, 135, 23),
+            DownloadStatus.canceled || DownloadStatus.failed => Theme.of(context).colorScheme.error,
+            DownloadStatus.paused => Colors.tealAccent,
           }
         : switch (this) {
-            TaskStatus.enqueued => Colors.blue,
-            TaskStatus.running => Colors.green,
-            TaskStatus.complete => Colors.lime,
-            TaskStatus.notFound => const Color.fromARGB(255, 221, 135, 23),
-            TaskStatus.canceled || TaskStatus.failed => Theme.of(context).colorScheme.error,
-            TaskStatus.waitingToRetry => Colors.yellow,
-            TaskStatus.paused => Colors.teal,
+            DownloadStatus.enqueued => Colors.blue,
+            DownloadStatus.running => Colors.green,
+            DownloadStatus.complete => Colors.lime,
+            DownloadStatus.notFound => const Color.fromARGB(255, 221, 135, 23),
+            DownloadStatus.canceled || DownloadStatus.failed => Theme.of(context).colorScheme.error,
+            DownloadStatus.paused => Colors.teal,
           };
   }
 
   String name(BuildContext context) => switch (this) {
-        TaskStatus.enqueued => context.localized.syncStatusEnqueued,
-        TaskStatus.running => context.localized.syncStatusRunning,
-        TaskStatus.complete => context.localized.syncStatusSynced,
-        TaskStatus.notFound => context.localized.syncStatusNotFound,
-        TaskStatus.failed => context.localized.syncStatusFailed,
-        TaskStatus.canceled => context.localized.syncStatusCanceled,
-        TaskStatus.waitingToRetry => context.localized.syncStatusWaitingToRetry,
-        TaskStatus.paused => context.localized.syncStatusPaused,
+        DownloadStatus.enqueued => context.localized.syncStatusEnqueued,
+        DownloadStatus.running => context.localized.syncStatusRunning,
+        DownloadStatus.complete => context.localized.syncStatusSynced,
+        DownloadStatus.notFound => context.localized.syncStatusNotFound,
+        DownloadStatus.failed => context.localized.syncStatusFailed,
+        DownloadStatus.canceled => context.localized.syncStatusCanceled,
+        DownloadStatus.paused => context.localized.syncStatusPaused,
       };
 }
