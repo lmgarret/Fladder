@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/providers/sync_provider.dart';
@@ -125,7 +125,7 @@ class SyncListItem extends ConsumerWidget {
                                       builder: (context, ref, child) => SyncLabel(
                                         label: context.localized.totalSize(
                                             ref.watch(syncSizeProvider(syncedItem, nestedChildren)).byteFormat ?? '--'),
-                                        status: combinedStream?.status ?? TaskStatus.notFound,
+                                        status: combinedStream?.status ?? DownloadStatus.notFound,
                                       ),
                                     ),
                                   ),

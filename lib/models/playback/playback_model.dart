@@ -2,12 +2,12 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart' hide ConnectionState;
 
-import 'package:background_downloader/background_downloader.dart';
 import 'package:chopper/chopper.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/channel_model.dart';
 import 'package:fladder/models/items/chapters_model.dart';
@@ -244,7 +244,7 @@ class PlaybackModelHelper {
 
       SyncedItem? syncedItem = await ref.read(syncProvider.notifier).getSyncedItem(fullItem.id);
 
-      final firstItemIsSynced = syncedItem != null && syncedItem.status == TaskStatus.complete;
+      final firstItemIsSynced = syncedItem != null && syncedItem.status == DownloadStatus.complete;
 
       final options = {
         PlaybackType.directStream,

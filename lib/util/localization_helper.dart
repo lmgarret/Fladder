@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
-import 'package:fladder/providers/sync/background_download_provider.dart';
 import 'package:fladder/src/translations_pigeon.g.dart' as messenger;
 
 ///Only use for base translations, under normal circumstances ALWAYS use the widgets provided context
@@ -50,7 +49,6 @@ class _LocalizationContextWrapperState extends ConsumerState<LocalizationContext
 
     WidgetsBinding.instance.addPostFrameCallback((value) {
       ref.read(localizationContextProvider.notifier).update((cb) => context);
-      ref.read(backgroundDownloaderProvider.notifier).updateTranslations(context);
     });
   }
 

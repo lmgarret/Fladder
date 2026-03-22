@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/items/episode_model.dart';
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/providers/sync_provider.dart';
@@ -95,7 +95,7 @@ class _SyncedEpisodeItemState extends ConsumerState<SyncedEpisodeItem> {
                       label:
                           context.localized.totalSize(ref.watch(syncSizeProvider(syncedItem, [])).byteFormat ?? '--'),
                       status: ref.watch(syncDownloadStatusProvider(syncedItem, [])
-                          .select((value) => value?.status ?? TaskStatus.notFound)),
+                          .select((value) => value?.status ?? DownloadStatus.notFound)),
                     ),
                   )
               ],
@@ -115,7 +115,7 @@ class _SyncedEpisodeItemState extends ConsumerState<SyncedEpisodeItem> {
                   context.localized.syncRemoveDataTitle,
                   context.localized.syncRemoveDataDesc,
                   (context) async {
-                    await ref.read(syncProvider.notifier).deleteFullSyncFiles(syncedItem, downloadTask.task);
+                    await ref.read(syncProvider.notifier).deleteFullSyncFiles(syncedItem);
                     Navigator.pop(context);
                   },
                   context.localized.delete,

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 
@@ -20,18 +20,18 @@ class SyncButton extends ConsumerWidget {
       AsyncValue<List<SyncedItem>>(:final value) => Builder(
           builder: (context) {
             final download = ref.watch(syncDownloadStatusProvider(syncedItem, value ?? []));
-            final status = download?.status ?? TaskStatus.notFound;
+            final status = download?.status ?? DownloadStatus.notFound;
             final progress = download?.progress ?? 0.0;
 
             return Stack(
               alignment: Alignment.center,
               children: [
                 Icon(
-                  status == TaskStatus.notFound
+                  status == DownloadStatus.notFound
                       ? (progress > 0 ? IconsaxPlusLinear.arrow_down_1 : IconsaxPlusLinear.more_circle)
                       : status.icon,
                   color: status.color(context),
-                  size: status == TaskStatus.running && progress > 0 ? 16 : null,
+                  size: status == DownloadStatus.running && progress > 0 ? 16 : null,
                 ),
                 SizedBox.fromSize(
                   size: const Size.fromRadius(10),
@@ -46,7 +46,7 @@ class SyncButton extends ConsumerWidget {
                       strokeCap: StrokeCap.round,
                       strokeWidth: 2,
                       color: status.color(context),
-                      value: status == TaskStatus.running ? value.clamp(0.0, 1.0) : 0,
+                      value: status == DownloadStatus.running ? value.clamp(0.0, 1.0) : 0,
                     ),
                   ),
                 ),

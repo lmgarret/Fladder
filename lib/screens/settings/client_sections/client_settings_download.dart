@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/providers/settings/client_settings_provider.dart';
-import 'package:fladder/providers/sync/background_download_provider.dart';
+import 'package:fladder/providers/sync/dio_download_service.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
@@ -147,7 +147,7 @@ List<Widget> buildClientSettingsDownload(BuildContext context, WidgetRef ref, Fu
                       ),
                     );
 
-                ref.read(backgroundDownloaderProvider.notifier).setMaxConcurrent(value);
+                ref.read(dioDownloadServiceProvider.notifier).setMaxConcurrent(value);
               }
             },
           ),

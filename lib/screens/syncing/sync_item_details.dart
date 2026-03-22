@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
@@ -145,7 +145,7 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                                                           .watch(syncSizeProvider(syncedItem, nestedChildren))
                                                           .byteFormat ??
                                                       '--'),
-                                                  status: combinedStream?.status ?? TaskStatus.notFound,
+                                                  status: combinedStream?.status ?? DownloadStatus.notFound,
                                                 ),
                                               ),
                                             ),
@@ -173,7 +173,7 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                                   context.localized.syncRemoveDataTitle,
                                   context.localized.syncRemoveDataDesc,
                                   (context) {
-                                    ref.read(syncProvider.notifier).deleteFullSyncFiles(syncedItem, downloadTask.task);
+                                    ref.read(syncProvider.notifier).deleteFullSyncFiles(syncedItem);
                                     Navigator.of(context).pop();
                                   },
                                   context.localized.delete,

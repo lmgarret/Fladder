@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:background_downloader/background_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/models/items/episode_model.dart';
 import 'package:fladder/models/items/season_model.dart';
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/screens/shared/flat_button.dart';
@@ -95,7 +95,7 @@ class _SyncedSeasonPosterState extends ConsumerState<SyncedSeasonPoster> {
                               builder: (context, ref, child) => SyncLabel(
                                 label: context.localized
                                     .totalSize(ref.watch(syncSizeProvider(syncedItem, children))?.byteFormat ?? '--'),
-                                status: combinedStream?.status ?? TaskStatus.notFound,
+                                status: combinedStream?.status ?? DownloadStatus.notFound,
                               ),
                             ),
                           ),
