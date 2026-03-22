@@ -68,6 +68,9 @@ local.properties
 
 # flatpak
 .flatpak-builder
+/flatpak-build/
+/flatpak-repo/
+/build-dir/
 
 # Affinity lock
 *.afdesign~lock~

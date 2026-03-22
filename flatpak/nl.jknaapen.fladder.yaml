@@ -143,10 +143,11 @@ modules:
       - mkdir -p /app/bin
       - cp -r build/linux/x64/release/bundle/* /app/bin/
       - chmod +x /app/bin/Fladder
+      - ln -sf /app/lib64/libmpv.so.2 /app/bin/lib/libmpv.so.2
       - mkdir -p /app/share/applications
-      - mkdir -p /app/share/icons/hicolor/scalable/apps
+      - mkdir -p /app/share/icons/hicolor/512x512/apps
       - install -Dm644 flatpak/Fladder.desktop /app/share/applications/${FLATPAK_ID}.desktop
-      - install -Dm644 icons/fladder_icon.svg /app/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - install -Dm644 icons/production/fladder_icon_512.png /app/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png
     sources:
       - type: dir
         path: ..
