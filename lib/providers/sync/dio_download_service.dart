@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' show File, FileMode, Platform;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:fladder/models/syncing/download_status.dart';
@@ -79,6 +81,7 @@ class DioDownloadService extends _$DioDownloadService {
   final _downloads = <String, DownloadEntry>{};
   final _pendingQueue = <_PendingDownload>[];
   int _activeCount = 0;
+  bool _foregroundTaskRunning = false;
 
   @override
   Map<String, DownloadEntry> build() {
@@ -111,6 +114,7 @@ class DioDownloadService extends _$DioDownloadService {
     _pendingQueue.add(_PendingDownload(taskId, startByte: 0));
     _tryStartNext();
     _updateState();
+    _updateForegroundTask();
   }
 
   /// Pause an active download. Records bytes on disk for resume.
@@ -130,6 +134,7 @@ class DioDownloadService extends _$DioDownloadService {
     _activeCount--;
     _tryStartNext();
     _updateState();
+    _updateForegroundTask();
   }
 
   /// Resume a paused download from where it left off using a Range header.
@@ -141,6 +146,7 @@ class DioDownloadService extends _$DioDownloadService {
     _downloads[taskId] = entry.copyWith(status: DownloadStatus.enqueued);
     _tryStartNext();
     _updateState();
+    _updateForegroundTask();
   }
 
   /// Cancel a download. Deletes any partial file on disk.
@@ -170,6 +176,7 @@ class DioDownloadService extends _$DioDownloadService {
 
     _tryStartNext();
     _updateState();
+    _updateForegroundTask();
   }
 
   /// Pause all currently running downloads.
@@ -328,6 +335,7 @@ class DioDownloadService extends _$DioDownloadService {
       _activeCount--;
       _tryStartNext();
       _updateState();
+      _updateForegroundTask();
     } on DioException catch (e) {
       // CancelToken.isCancel: user-initiated pause or cancel — handled by caller methods
       if (CancelToken.isCancel(e)) return;
@@ -367,6 +375,7 @@ class DioDownloadService extends _$DioDownloadService {
       _tryStartNext();
     }
     _updateState();
+    _updateForegroundTask();
   }
 
   /// React to connectivity changes — attempt to start pending downloads
@@ -385,6 +394,50 @@ class DioDownloadService extends _$DioDownloadService {
       return '${(bytesPerSecond / 1024).toStringAsFixed(1)} KB/s';
     }
     return '${(bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s';
+  }
+
+  /// Start or stop the foreground service based on whether any downloads are active.
+  ///
+  /// Starts the Android foreground service when the first download becomes active,
+  /// keeping downloads alive when the app is backgrounded. Stops it when no
+  /// active (running or enqueued) downloads remain.
+  ///
+  /// iOS: best-effort — flutter_foreground_task has limited background support on iOS.
+  void _updateForegroundTask() {
+    if (kIsWeb) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
+
+    final hasActive = state.values.any((e) => e.status.isActive);
+
+    if (hasActive && !_foregroundTaskRunning) {
+      _foregroundTaskRunning = true;
+      FlutterForegroundTask.init(
+        androidNotificationOptions: AndroidNotificationOptions(
+          channelId: 'fladder_download_foreground',
+          channelName: 'Download Service',
+          channelImportance: NotificationChannelImportance.LOW,
+          onlyAlertOnce: true,
+        ),
+        iosNotificationOptions: const IOSNotificationOptions(
+          showNotification: false,
+          playSound: false,
+        ),
+        foregroundTaskOptions: ForegroundTaskOptions(
+          eventAction: ForegroundTaskEventAction.nothing(),
+          autoRunOnBoot: false,
+          autoRunOnMyPackageReplaced: false,
+          allowWakeLock: true,
+          allowWifiLock: true,
+        ),
+      );
+      FlutterForegroundTask.startService(
+        notificationTitle: 'Downloading...',
+        notificationText: 'Downloads in progress',
+      );
+    } else if (!hasActive && _foregroundTaskRunning) {
+      _foregroundTaskRunning = false;
+      FlutterForegroundTask.stopService();
+    }
   }
 
   /// Trigger Riverpod state notification by reassigning state.
