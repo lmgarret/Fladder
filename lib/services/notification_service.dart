@@ -16,6 +16,10 @@ class NotificationService {
   static const String _channelName = 'Update notifications';
   static const String _channelDesc = 'Notifications for newly added items';
 
+  static const String _downloadChannelId = 'fladder_downloads';
+  static const String _downloadChannelName = 'Download progress';
+  static const String _downloadGroupKey = 'fladder_download_group';
+
   static final StreamController<String?> _selectNotificationController = StreamController<String?>.broadcast();
   static Stream<String?> get notificationTapStream => _selectNotificationController.stream;
 
@@ -60,6 +64,17 @@ class NotificationService {
       await _plugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
+
+      final downloadChannel = const AndroidNotificationChannel(
+        _downloadChannelId,
+        _downloadChannelName,
+        description: 'Shows progress for file downloads',
+        importance: Importance.low,
+        showBadge: false,
+      );
+      await _plugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(downloadChannel);
     }
   }
 
@@ -232,6 +247,56 @@ class NotificationService {
         windows: windowsSummary,
       ),
     );
+  }
+  /// Stable notification ID map to avoid duplicates per taskId.
+  static final Map<String, int> _downloadNotifIds = {};
+  static int _nextDownloadNotifId = 90000;
+
+  /// Show or update a download progress notification for a specific file.
+  /// [progress] should be 0-100. Call with negative progress to show indeterminate.
+  static Future<void> showDownloadProgress({
+    required String taskId,
+    required String fileName,
+    required int progress,
+  }) async {
+    if (kIsWeb) return;
+
+    final notifId = _downloadNotifIds.putIfAbsent(taskId, () => _nextDownloadNotifId++);
+
+    final androidDetails = AndroidNotificationDetails(
+      _downloadChannelId,
+      _downloadChannelName,
+      channelShowBadge: false,
+      importance: Importance.low,
+      priority: Priority.low,
+      showProgress: true,
+      maxProgress: 100,
+      progress: progress.clamp(0, 100),
+      ongoing: true,
+      onlyAlertOnce: true,
+      groupKey: _downloadGroupKey,
+    );
+    final iosDetails = DarwinNotificationDetails(threadIdentifier: _downloadGroupKey);
+    final linuxDetails = const LinuxNotificationDetails(defaultActionName: 'Open notification');
+
+    await _plugin.show(
+      id: notifId,
+      title: fileName,
+      body: '$progress%',
+      notificationDetails: NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+        linux: linuxDetails,
+      ),
+    );
+  }
+
+  /// Cancel a download progress notification when download completes or is cancelled.
+  static Future<void> cancelDownloadNotification(String taskId) async {
+    final notifId = _downloadNotifIds.remove(taskId);
+    if (notifId != null) {
+      await _plugin.cancel(id: notifId);
+    }
   }
 }
 
