@@ -10,7 +10,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | Dio Download Service | 2/2 | Complete   | 2026-03-22 |
-| 2 | Integration | Swap sync_provider and UI to use new service | INT-01 through INT-04 | 4 |
+| 2 | Integration | 1/4 | In Progress|  |
 | 3 | Cleanup | Remove background_downloader entirely | CLN-01 through CLN-04 | 4 |
 
 ## Phase 1: Dio Download Service
@@ -44,10 +44,10 @@ Plans:
 
 **Requirements:** INT-01, INT-02, INT-03, INT-04
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
-- [ ] 02-01-PLAN.md — Migrate model types (DownloadStream, sync_item, sync_provider_helpers) to DownloadStatus
+- [x] 02-01-PLAN.md — Migrate model types (DownloadStream, sync_item, sync_provider_helpers) to DownloadStatus
 - [ ] 02-02-PLAN.md — Rewire sync_provider.dart to DioDownloadService, add download notifications, update home screen badge
 - [ ] 02-03-PLAN.md — Migrate UI widgets to DownloadStatus + DioDownloadService
 - [ ] 02-04-PLAN.md — Add flutter_foreground_task for background download support

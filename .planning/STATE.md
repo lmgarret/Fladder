@@ -2,30 +2,30 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-status: planning
-stopped_at: Completed 01-dio-download-service-01-02-PLAN.md
-last_updated: "2026-03-22T00:44:55.480Z"
+current_phase: 02
+status: executing
+stopped_at: Completed 02-integration-02-01-PLAN.md
+last_updated: "2026-03-22T09:59:58.977Z"
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 6
+  completed_plans: 3
 ---
 
 # Project State
 
 **Project:** Fladder Download Refactor
 **Milestone:** v1.0 — Replace background_downloader with dio streaming
-**Current Phase:** 2
-**Status:** Ready to plan
+**Current Phase:** 02
+**Status:** Executing Phase 02
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Media files download reliably regardless of size — no /tmp buffering
-**Current focus:** Phase 01 — dio-download-service
+**Current focus:** Phase 02 — integration
 
 ## Progress
 
@@ -41,6 +41,8 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 - **01-01:** dio ^5.9.2 chosen for streaming, progress callbacks, cancel tokens, byte-range resume natively; own enum decouples from any library's status types
 - [Phase 01-02]: DownloadEntry made public (not _DownloadEntry) to satisfy Riverpod codegen state type requirement
 - [Phase 01-02]: dio_download_service.g.dart manually authored — local Dart 3.5.4 too old for build_runner (project needs 3.8.0+); must re-run build_runner in correct environment
+- [Phase 02-integration]: waitingToRetry case removed from StatusExtension — retries handled internally in DioDownloadService, status stays enqueued
+- [Phase 02-integration]: DownloadStream.task field removed — UI only needs taskId, full DownloadTask object no longer required in stream
 
 ## Performance Metrics
 
@@ -48,10 +50,11 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 |-------|------|----------|-------|-------|
 | 01-dio-download-service | 01 | 2min | 2 | 2 |
 | Phase 01-dio-download-service P02 | 8min | 2 tasks | 2 files |
+| Phase 02-integration P01 | 2min | 3 tasks | 3 files |
 
 ## Last Session
 
-- **Stopped at:** Completed 01-dio-download-service-01-02-PLAN.md
+- **Stopped at:** Completed 02-integration-02-01-PLAN.md
 - **Last updated:** 2026-03-22T00:31:44Z
 
 ---
