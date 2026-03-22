@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 02
 status: executing
-stopped_at: Completed 02-integration-02-03-PLAN.md
-last_updated: "2026-03-22T10:13:01.373Z"
+stopped_at: Completed 02-integration-02-04-PLAN.md
+last_updated: "2026-03-22T10:16:36.352Z"
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -47,6 +47,8 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 - [Phase 02-integration]: SyncProgressBar stop button simplified to isActive guard — old downloadTask != null guard gone since DownloadStream.task removed
 - [Phase 02-integration]: updateTranslations removed from localization_helper — DioDownloadService has no locale-specific text needs
 - [Phase 02-integration]: Task 2 files already migrated by 02-02 Rule 3 auto-fix
+- [Phase 02-integration]: flutter_foreground_task ^8.17.0 chosen for background download survival — compatible with Dart 3.5.4 (SDK >=3.0.0 <4.0.0)
+- [Phase 02-integration]: ForegroundTaskEventAction.nothing() — DioDownloadService manages its own loop, no periodic task handler needed
 
 ## Performance Metrics
 
@@ -57,10 +59,11 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 | Phase 02-integration P01 | 2min | 3 tasks | 3 files |
 | Phase 02-integration P02 | 8 | 3 tasks | 13 files |
 | Phase 02-integration P03 | 3 | 2 tasks | 1 files |
+| Phase 02-integration P04 | 5min | 2 tasks | 3 files |
 
 ## Last Session
 
-- **Stopped at:** Completed 02-integration-02-03-PLAN.md
+- **Stopped at:** Completed 02-integration-02-04-PLAN.md
 - **Last updated:** 2026-03-22T00:31:44Z
 
 ---

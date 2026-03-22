@@ -10,7 +10,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | Dio Download Service | 2/2 | Complete   | 2026-03-22 |
-| 2 | Integration | 2/4 | In Progress|  |
+| 2 | Integration | 4/4 | Complete   | 2026-03-22 |
 | 3 | Cleanup | Remove background_downloader entirely | CLN-01 through CLN-04 | 4 |
 
 ## Phase 1: Dio Download Service
@@ -44,13 +44,13 @@ Plans:
 
 **Requirements:** INT-01, INT-02, INT-03, INT-04
 
-**Plans:** 2/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — Migrate model types (DownloadStream, sync_item, sync_provider_helpers) to DownloadStatus
 - [x] 02-02-PLAN.md — Rewire sync_provider.dart to DioDownloadService, add download notifications, update home screen badge
 - [x] 02-03-PLAN.md — Migrate UI widgets to DownloadStatus + DioDownloadService
-- [ ] 02-04-PLAN.md — Add flutter_foreground_task for background download support
+- [x] 02-04-PLAN.md — Add flutter_foreground_task for background download support
 
 **Success Criteria:**
 1. DownloadStream model uses DownloadStatus enum instead of dl.TaskStatus
