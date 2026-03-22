@@ -1,4 +1,4 @@
-import 'package:background_downloader/background_downloader.dart';
+import 'package:fladder/models/syncing/download_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -59,7 +59,7 @@ class SyncDownloadStatus extends _$SyncDownloadStatus {
         fullProgress += downloadStream.progress.clamp(0.0, 1.0);
 
         mainStream = mainStream.copyWith(
-          status: mainStream.status != TaskStatus.running ? downloadStream.status : mainStream.status,
+          status: mainStream.status != DownloadStatus.running ? downloadStream.status : mainStream.status,
         );
       }
     }
@@ -68,7 +68,7 @@ class SyncDownloadStatus extends _$SyncDownloadStatus {
 
     var fullySynced = nestedChildren.isNotEmpty ? fullySyncedChildren == syncAbleChildren : arg.videoFile.existsSync();
     return mainStream.copyWith(
-      status: fullySynced ? TaskStatus.complete : mainStream.status,
+      status: fullySynced ? DownloadStatus.complete : mainStream.status,
       progress: fullProgress / downloadCount.clamp(1, double.infinity).toInt(),
     );
   }
