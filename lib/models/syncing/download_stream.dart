@@ -1,14 +1,12 @@
-import 'package:background_downloader/background_downloader.dart' as dl;
+import 'package:fladder/models/syncing/download_status.dart';
 
 class DownloadStream {
   final String id;
-  final dl.DownloadTask? task;
   final double progress;
   final String downloadSpeed;
-  final dl.TaskStatus status;
+  final DownloadStatus status;
   DownloadStream({
     required this.id,
-    this.task,
     this.progress = -1,
     this.downloadSpeed = "",
     required this.status,
@@ -16,25 +14,22 @@ class DownloadStream {
 
   DownloadStream.empty()
       : id = '',
-        task = null,
         progress = -1,
         downloadSpeed = "",
-        status = dl.TaskStatus.notFound;
+        status = DownloadStatus.notFound;
 
-  bool get hasDownload => progress != -1.0 && status != dl.TaskStatus.notFound && status != dl.TaskStatus.complete;
+  bool get hasDownload => progress != -1.0 && status != DownloadStatus.notFound && status != DownloadStatus.complete;
 
-  bool get isEnqueuedOrDownloading => status == dl.TaskStatus.enqueued || status == dl.TaskStatus.running;
+  bool get isEnqueuedOrDownloading => status == DownloadStatus.enqueued || status == DownloadStatus.running;
 
   DownloadStream copyWith({
     String? id,
-    dl.DownloadTask? task,
     double? progress,
     String? downloadSpeed,
-    dl.TaskStatus? status,
+    DownloadStatus? status,
   }) {
     return DownloadStream(
       id: id ?? this.id,
-      task: task ?? this.task,
       progress: progress ?? this.progress,
       downloadSpeed: downloadSpeed ?? this.downloadSpeed,
       status: status ?? this.status,
@@ -43,6 +38,6 @@ class DownloadStream {
 
   @override
   String toString() {
-    return 'DownloadStream(id: $id, task: $task, progress: $progress, status: $status)';
+    return 'DownloadStream(id: $id, progress: $progress, status: $status)';
   }
 }
