@@ -115,7 +115,6 @@ dependencies:
   screen_brightness: ^2.1.7
   window_manager: ^0.5.1
   smtc_windows: ^1.1.0
-  background_downloader: ^9.2.3
   flutter_foreground_task: ^8.17.0
   screen_retriever: ^0.2.0
   desktop_multi_window: ^0.3.0
