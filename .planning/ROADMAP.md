@@ -49,7 +49,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — Migrate model types (DownloadStream, sync_item, sync_provider_helpers) to DownloadStatus
 - [x] 02-02-PLAN.md — Rewire sync_provider.dart to DioDownloadService, add download notifications, update home screen badge
-- [ ] 02-03-PLAN.md — Migrate UI widgets to DownloadStatus + DioDownloadService
+- [x] 02-03-PLAN.md — Migrate UI widgets to DownloadStatus + DioDownloadService
 - [ ] 02-04-PLAN.md — Add flutter_foreground_task for background download support
 
 **Success Criteria:**
