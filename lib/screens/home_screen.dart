@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/sync/dio_download_service.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
@@ -132,7 +133,13 @@ class HomeScreen extends ConsumerWidget {
                   icon: Icon(e.icon),
                   badge: Consumer(
                     builder: (context, ref, child) {
-                      final length = ref.watch(activeDownloadTasksProvider.select((value) => value.length));
+                      final length = ref.watch(
+                        dioDownloadServiceProvider.select(
+                          (downloads) => downloads.values
+                              .where((e) => e.status.isActive)
+                              .length,
+                        ),
+                      );
                       return length != 0
                           ? CircleAvatar(
                               radius: 10,
