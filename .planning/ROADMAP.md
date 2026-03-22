@@ -44,11 +44,20 @@ Plans:
 
 **Requirements:** INT-01, INT-02, INT-03, INT-04
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Migrate model types (DownloadStream, sync_item, sync_provider_helpers) to DownloadStatus
+- [ ] 02-02-PLAN.md — Rewire sync_provider.dart to DioDownloadService, add download notifications, update home screen badge
+- [ ] 02-03-PLAN.md — Migrate UI widgets to DownloadStatus + DioDownloadService
+- [ ] 02-04-PLAN.md — Add flutter_foreground_task for background download support
+
 **Success Criteria:**
 1. DownloadStream model uses DownloadStatus enum instead of dl.TaskStatus
 2. sync_provider.dart calls DioDownloadService for download/cancel operations
 3. All UI files compile with new status types and show correct icons/states
 4. Download notifications show via flutter_local_notifications
+5. Foreground service keeps downloads alive when app is backgrounded
 
 **Key files to modify:**
 - `lib/models/syncing/download_stream.dart` — remove background_downloader import, use own types
@@ -56,6 +65,9 @@ Plans:
 - `lib/screens/syncing/sync_widgets.dart` — swap TaskStatus references
 - `lib/screens/syncing/widgets/sync_options_button.dart` — swap TaskStatus references
 - `lib/models/syncing/sync_item.dart` — swap TaskStatus references
+- `lib/services/notification_service.dart` — add download progress channel
+- `lib/providers/sync/dio_download_service.dart` — wire foreground task lifecycle
+- `android/app/src/main/AndroidManifest.xml` — add foreground service permissions
 - `lib/providers/sync/background_download_provider.dart` — keep temporarily for compilation
 
 ## Phase 3: Cleanup
