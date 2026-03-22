@@ -1,5 +1,4 @@
-/// Download status enum decoupled from background_downloader's TaskStatus.
-/// Values intentionally parallel TaskStatus for minimal Phase 2 migration diff.
+/// Download status enum for tracking file download progress.
 enum DownloadStatus {
   notFound,
   enqueued,
